@@ -8,7 +8,7 @@ const (
 type CPlr int
 
 const (
-	CNone    CPlr = iota
+	CNone CPlr = iota
 	CPlr1Max
 	CPlr2Min
 )

@@ -1,13 +1,18 @@
 package game
 
-const inf int = 99999720
+import (
+	"fmt"
+	"math"
+)
+
+const highNumber int = 999990000
 
 const (
-	CWonS              = inf // won/lost
-	CCenterS           = 381 // col 4
-	CMidS              = 59  // col 3/5
-	CWinnableConnect3S = 387
-	CWinnableConnect2S = 152
+	CWonS              = highNumber // won/lost
+	CCenterS           = 1023       // col 4
+	CMidS              = 487        // col 3/5
+	CWinnableConnect3S = 734
+	CWinnableConnect2S = 304
 )
 
 const ( // index num starts at 0
@@ -15,6 +20,13 @@ const ( // index num starts at 0
 	cMidCol1   = 2
 	cMidCol2   = 4
 )
+
+type flameStats struct {
+	posAnalyzed int
+	posBroke    int
+}
+
+var fStats = &flameStats{}
 
 func max(a, b int) int {
 	if a > b {
@@ -32,21 +44,21 @@ func min(a, b int) int {
 	}
 }
 
-func Connect4GetAiMove(game Connect4Game) (col int) {
+func FlameAiGetMove(game Connect4Game) (col int) {
 	possibleMoves := getOrderedMoves(game.Board)
+
+	fStats = &flameStats{}
 
 	var depth int
 
-	if game.TurnNum < 5 {
-		depth = 6
-	} else if game.TurnNum < 14 {
+	if game.TurnNum < 3 {
 		depth = 7
-	} else if game.TurnNum < 19 {
+	} else if game.TurnNum < 14 {
+		depth = 8
+	} else if game.TurnNum < 20 {
 		depth = 9
-	} else if game.TurnNum < 23 {
-		depth = 11
 	} else {
-		depth = game.TurnNum / 2
+		depth = game.TurnNum
 	}
 
 	isMaximizingPlayer := game.PlrTurn == CPlr1Max
@@ -55,16 +67,16 @@ func Connect4GetAiMove(game Connect4Game) (col int) {
 	for _, moveCol := range possibleMoves {
 		go func(m int) {
 			// opposite of max because is placing now the other one
-			posEval := minMax(cPutPieceOnBoard(game.Board, m, game.PlrTurn), depth, -inf, inf, !isMaximizingPlayer)
+			posEval := minMax(cPutPieceOnBoard(game.Board, m, game.PlrTurn), depth, -highNumber, highNumber, !isMaximizingPlayer)
 			evalCh <- [2]int{m, posEval}
 		}(moveCol)
 	}
 
 	var extremeEval int
 	if isMaximizingPlayer {
-		extremeEval = -inf
+		extremeEval = -math.MaxInt
 	} else {
-		extremeEval = inf
+		extremeEval = math.MaxInt
 	}
 	var bestMove int
 
@@ -75,7 +87,7 @@ func Connect4GetAiMove(game Connect4Game) (col int) {
 		posEval := t[1]
 
 		if isMaximizingPlayer {
-			if posEval > extremeEval {
+			if posEval >= extremeEval {
 				extremeEval = posEval
 				bestMove = t[0]
 			}
@@ -86,6 +98,12 @@ func Connect4GetAiMove(game Connect4Game) (col int) {
 			}
 		}
 	}
+
+	fmt.Printf(
+		"Eval: %v | Analyzed: %v | Broke: %v \n",
+		extremeEval,
+		fStats.posAnalyzed,
+		fStats.posBroke)
 
 	return bestMove
 }
@@ -116,22 +134,24 @@ func getOrderedMoves(board CBoard) []int {
 }
 
 func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool) int {
-	if depth == 0 {
-		return staticEval(&board)
-	} else if gs := cGetGameState(board); gs != CStatePlaying {
+	if gs := cGetGameState(board); gs != CStatePlaying {
+		fStats.posAnalyzed++
 		switch gs {
 		case CStateDraw:
 			return 0
 		case CStatePlr1Won:
-			return (inf * depth) // make it smaller the deeper in this happens so comp will rather stop early threats
+			return (highNumber + depth)
 		case CStatePlr2Won:
-			return (-inf * depth)
+			return (-highNumber - depth)
 		}
+	} else if depth == 0 {
+		fStats.posAnalyzed++
+		return staticEval(&board)
 	}
 
 	possibleMoves := getOrderedMoves(board)
 	if maximizingPlayer {
-		maxEval := -inf
+		maxEval := -highNumber
 
 		for _, move := range possibleMoves {
 			newEval := minMax(cPutPieceOnBoard(board, move, CPlr1Max), depth-1, alpha, beta, false)
@@ -139,13 +159,14 @@ func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool)
 
 			alpha = max(alpha, newEval)
 			if beta <= alpha {
+				fStats.posBroke++
 				break
 			}
 		}
 
 		return maxEval
 	} else {
-		minEval := inf
+		minEval := highNumber
 
 		for _, move := range possibleMoves {
 			newEval := minMax(cPutPieceOnBoard(board, move, CPlr2Min), depth-1, alpha, beta, true)
@@ -153,6 +174,7 @@ func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool)
 
 			beta = min(beta, newEval)
 			if beta <= alpha {
+				fStats.posBroke++
 				break
 			}
 		}
@@ -162,24 +184,10 @@ func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool)
 }
 
 func staticEval(board *CBoard) (score int) {
-	score += getGameOverScore(board)
 	score += getLocationScore(board)
 	score += getConnectionScore(board)
 
 	return score
-}
-
-func getGameOverScore(board *CBoard) (score int) {
-	gs := cGetGameState(*board)
-
-	switch gs {
-	case CStatePlr1Won:
-		return inf
-	case CStatePlr2Won:
-		return -inf
-	}
-
-	return 0
 }
 
 func getLocationScore(board *CBoard) (score int) {
