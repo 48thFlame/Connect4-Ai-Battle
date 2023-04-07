@@ -16,7 +16,7 @@ func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool)
 		return staticEval(&board)
 	}
 
-	possibleMoves := getOrderedMoves(board)
+	possibleMoves := getOrderedAvailableMoves(board)
 	if maximizingPlayer {
 		maxEval := -highNumber
 

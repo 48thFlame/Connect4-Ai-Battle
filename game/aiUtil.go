@@ -1,5 +1,7 @@
 package game
 
+import "sort"
+
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -90,7 +92,7 @@ func getCombinations(board CBoard) [][]CPlr {
 	return combinations
 }
 
-func getOrderedMoves(board CBoard) []int {
+func getOrderedAvailableMoves(board CBoard) []int {
 	s := cGetAvailableMoves(board)
 	prob := []int{3, 4, 2, 5, 1, 6, 0}
 
@@ -103,4 +105,25 @@ func getOrderedMoves(board CBoard) []int {
 	}
 
 	return c
+}
+
+func sortMovesHighLow(s []moveRating) {
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].eval > s[j].eval
+	})
+}
+
+func sortMovesLowHigh(s []moveRating) {
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].eval < s[j].eval
+	})
+}
+
+func moveRatingsToMoves(s []moveRating) []int {
+	r := make([]int, 0)
+	for _, m := range s {
+		r = append(r, m.move)
+	}
+
+	return r
 }
