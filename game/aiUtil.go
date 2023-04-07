@@ -89,3 +89,18 @@ func getCombinations(board CBoard) [][]CPlr {
 
 	return combinations
 }
+
+func getOrderedMoves(board CBoard) []int {
+	s := cGetAvailableMoves(board)
+	prob := []int{3, 4, 2, 5, 1, 6, 0}
+
+	c := make([]int, 0)
+
+	for _, good := range prob {
+		if inSlice(s, good) {
+			c = append(c, good)
+		}
+	}
+
+	return c
+}
