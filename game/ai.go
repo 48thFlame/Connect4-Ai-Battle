@@ -11,7 +11,7 @@ func FlameAiGetMove(game Connect4Game) (col int) {
 
 	s := make([]moveRating, 0)
 	moves := getOrderedAvailableMoves(game.Board)
-	depth := 2
+	depth := 7
 	timeout := time.After(timeoutTime)
 
 loop:
@@ -21,7 +21,7 @@ loop:
 			break loop
 		default:
 		}
-		depth += 3
+		depth += 1
 		s = search(game, depth, moves)
 		moves = moveRatingsToMoves(s)
 	}

@@ -1,46 +1,26 @@
 package game
 
 func staticEval(board *CBoard) (score int) {
-	score += getLocationScore(board)
 	score += getConnectionScore(board)
+	plr1V, plr2V := getHeatMapScore(board)
+
+	score += (plr1V - plr2V) * CHeatS
 
 	return score
 }
 
-func getLocationScore(board *CBoard) (score int) {
-	centerPlr1, centerPlr2 := getCenters(board)
-	midPl1, midPlr2 := getMiddles(board)
-	score += (centerPlr1 - centerPlr2) * CCenterS
-	score += (midPl1 - midPlr2) * CMidS
-	return score
-}
-
-func getCenters(board *CBoard) (centerPlr1, centerPlr2 int) {
-	for _, row := range board {
-		spot := row[cCenterCol]
-		if spot == CPlr1Max {
-			centerPlr1++
-		} else if spot == CPlr2Min {
-			centerPlr2++
+func getHeatMapScore(board *CBoard) (plr1V, plr2V int) {
+	for rowI, row := range board {
+		for colI, spot := range row {
+			if spot == CPlr1Max {
+				plr1V += locationHeatMap[rowI][colI]
+			} else if spot == CPlr2Min {
+				plr2V += locationHeatMap[rowI][colI]
+			}
 		}
 	}
 
-	return centerPlr1, centerPlr2
-}
-
-func getMiddles(board *CBoard) (midPlr1, midPlr2 int) {
-	for _, row := range board {
-		spot1 := row[cMidCol1]
-		spot2 := row[cMidCol2]
-
-		if spot1 == CPlr1Max || spot2 == CPlr1Max {
-			midPlr1++
-		} else if spot1 == CPlr2Min || spot2 == CPlr2Min {
-			midPlr2++
-		}
-	}
-
-	return midPlr1, midPlr2
+	return plr1V, plr2V
 }
 
 func getConnectionScore(board *CBoard) (score int) {

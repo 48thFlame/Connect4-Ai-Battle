@@ -4,27 +4,20 @@ import "time"
 
 const highNumber int = 100_000_000_000
 
-// const (
-// 	CWonS              = highNumber // won/lost
-// 	CCenterS           = 1023       // col 4
-// 	CMidS              = 487        // col 3/5
-// 	CWinnableConnect3S = 734
-// 	CWinnableConnect2S = 304
-// )
-
 const (
 	CWonS              = highNumber // high score for winning
-	CCenterS           = 1000       // score for center column (col 4)
-	CMidS              = 600        // score for middle columns (col 3/5)
-	CWinnableConnect3S = 800        // score for winnable connect-3 sequence
-	CWinnableConnect2S = 250        // score for winnable connect-2 sequence
+	CWinnableConnect3S = 92         // score for winnable connect-3 sequence
+	CWinnableConnect2S = 36         // score for winnable connect-2 sequence
+	CHeatS             = 10
 )
 
-const ( // index num starts at 0
-	cCenterCol = 3
-	cMidCol1   = 2
-	cMidCol2   = 4
-)
+var locationHeatMap = [CRowsNum][CColsNum]int{
+	{0, 1, 3, 8, 3, 1, 0},
+	{1, 2, 6, 10, 6, 2, 1},
+	{1, 3, 8, 12, 8, 3, 1},
+	{1, 3, 8, 12, 8, 3, 1},
+	{1, 2, 6, 10, 6, 2, 1},
+	{0, 1, 3, 8, 3, 1, 0}}
 
 type flameStats struct {
 	posAnalyzed int
