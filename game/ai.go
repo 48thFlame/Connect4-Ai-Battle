@@ -2,65 +2,64 @@ package game
 
 import (
 	"fmt"
-	"time"
 )
 
 func FlameAiGetMove(game Connect4Game) (col int) {
+	var depth int
+
+	if game.TurnNum < 3 {
+		depth = 7
+	} else if game.TurnNum < 14 {
+		depth = 8
+	} else if game.TurnNum < 22 {
+		depth = 9
+	} else if game.TurnNum < 26 {
+		depth = 11
+	} else {
+		depth = game.TurnNum * game.TurnNum
+	}
+
+	initOrdered := getOrderedAvailableMoves(game.Board)
+	quickSearchResults := moveRatingsToMoves(search(game, 4, initOrdered))
 	fStats = &flameStats{}
+	mRatings := search(game, depth, quickSearchResults)
 
-	mRatings := make([]moveRating, 0)
-	moves := getOrderedAvailableMoves(game.Board)
-	depth := 6
-	timeout := time.After(timeoutTime)
+	bestMove := mRatings[0]
 
-loop:
-	for {
-		select {
-		case <-timeout:
-			break loop
-		default:
-		}
-		depth += 1
-		mRatings = search(game, depth, moves)
-		moves = moveRatingsToMoves(mRatings)
-	}
-
-	var eval int
-	if len(mRatings) > 0 { //actually made a search (almost definitely unless timed-out first)
-		fmt.Printf("Max-search at depth %v\n", depth)
-		bestMove := mRatings[0]
-
-		eval = bestMove.eval
-	}
+	eval := bestMove.eval
 
 	fmt.Printf("%v\n", mRatings)
 	fmt.Printf(
-		"Eval: %v | Analyzed: %v | Broke: %v \n",
+		"Depth: %v | Eval: %v | Analyzed: %v | Broke: %v \n",
+		depth,
 		eval,
 		fStats.posAnalyzed,
 		fStats.posBroke)
 
-	return moves[0]
+	return bestMove.move
 }
 
 func search(game Connect4Game, depth int, moves []int) (s []moveRating) {
 	isMaximizingPlayer := game.PlrTurn == CPlr1Max
-	evalCh := make(chan moveRating)
+	moveRatingCh := make(chan moveRating)
 
 	for _, moveCol := range moves {
 		go func(m int) {
-			// opposite of max because is placing now the other one
 			posEval := minMax(
 				cPutPieceOnBoard(game.Board, m, game.PlrTurn),
-				depth, -highNumber, highNumber, !isMaximizingPlayer)
+				depth,
+				-highNumber,
+				highNumber,
+				// opposite of max because is placing now the other one
+				!isMaximizingPlayer)
 
-			evalCh <- moveRating{move: m, eval: posEval}
+			moveRatingCh <- moveRating{move: m, eval: posEval}
 		}(moveCol)
 	}
 
 	numOfPossible := len(moves)
 	for i := 0; i < numOfPossible; i++ { // for each goroutine started, get its result
-		t := <-evalCh
+		t := <-moveRatingCh
 
 		s = append(s, t)
 	}
@@ -82,7 +81,7 @@ func minMax(board CBoard, depth int, alpha int, beta int, maximizingPlayer bool)
 		case CStateDraw:
 			return 0
 		case CStatePlr1Won:
-			return highNumber - depth
+			return highNumber + depth
 		case CStatePlr2Won:
 			return -highNumber - depth
 		}

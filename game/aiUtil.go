@@ -2,25 +2,23 @@ package game
 
 import (
 	"sort"
-	"time"
 )
 
 const highNumber int = 100_000_000_000
 
 const (
-	CWonS              = highNumber // high score for winning
-	CWinnableConnect3S = 145        // score for winnable connect-3 sequence
-	CWinnableConnect2S = 64         // score for winnable connect-2 sequence
-	CHeatS             = 10
+	CWonS              = highNumber // won/lost
+	CCenterS           = 381        // col 4
+	CMidS              = 59         // col 3/5
+	CWinnableConnect3S = 387
+	CWinnableConnect2S = 152
 )
 
-var locationHeatMap = [CRowsNum][CColsNum]int{
-	{0, 1, 3, 8, 3, 1, 0},
-	{1, 2, 6, 10, 6, 2, 1},
-	{1, 3, 8, 12, 8, 3, 1},
-	{1, 3, 8, 12, 8, 3, 1},
-	{1, 2, 6, 10, 6, 2, 1},
-	{0, 1, 3, 8, 3, 1, 0}}
+const ( // index num starts at 0
+	cCenterCol = 3
+	cMidCol1   = 2
+	cMidCol2   = 4
+)
 
 type flameStats struct {
 	posAnalyzed int
@@ -33,8 +31,6 @@ type moveRating struct {
 	move int
 	eval int
 }
-
-const timeoutTime = 800 * time.Millisecond
 
 func max(a, b int) int {
 	if a > b {
@@ -83,11 +79,11 @@ func winnableN(s []CPlr, piece CPlr, n int) bool {
 func getCombinations(board CBoard) [][]CPlr {
 	/*
 		[[2 0 0 0 2 2 2]
-		 [1 1 1 0 1 0 1]
-		 [1 2 2 0 0 0 2]
-		 [2 1 1 1 1 1 1]
-		 [1 0 0 2 2 2 2]
-		 [0 0 1 1 1 1 2]]
+			[1 1 1 0 1 0 1]
+			[1 2 2 0 0 0 2]
+			[2 1 1 1 1 1 1]
+			[1 0 0 2 2 2 2]
+			[0 0 1 1 1 1 2]]
 	*/
 	var combinations [][]CPlr
 
@@ -161,3 +157,20 @@ func moveRatingsToMoves(s []moveRating) []int {
 
 	return r
 }
+
+// const (
+// 	CWonS              = highNumber // high score for winning
+// 	CWinnableConnect3S = 92         // score for winnable connect-3 sequence
+// 	CWinnableConnect2S = 36         // score for winnable connect-2 sequence
+
+// 	CHeatS = 10
+// )
+
+// var locationHeatMap = [CRowsNum][CColsNum]int{
+// 	{0, 1, 3, 10, 3, 1, 0},
+// 	{1, 2, 6, 12, 6, 2, 1},
+// 	{1, 3, 8, 14, 8, 3, 1},
+// 	{1, 3, 8, 14, 8, 3, 1},
+// 	{1, 2, 6, 12, 6, 2, 1},
+// 	{0, 1, 3, 10, 3, 1, 0}}
+// const timeoutTime = 800 * time.Millisecond
