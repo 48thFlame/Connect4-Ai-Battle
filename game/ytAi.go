@@ -7,30 +7,38 @@ import (
 	"sync"
 )
 
+const ITERATIONS = 50000
+
 func YtAiGetMove(game Connect4Game) (col int) {
 
+	InitBits()
 	// fmt.Println("Dumping")
 	// dumpBoard(&game.Board)
+	fmt.Printf("Generating move for %d\n", game.PlrTurn)
 
-	moves := getAvailableMoves(&game.Board)
+	bitBoard := convertBoardToBits(&game.Board)
 
-	winning, wmove := getWinningMove(&game.Board, game.PlrTurn, &moves)
+	moves := bitBoard.GetAvailableMoves()
+
+	winning, wmove := getWinningMove(&bitBoard, game.PlrTurn, &moves)
 	if winning {
+		fmt.Println("Direct Win")
 		return wmove
 	}
 
-	winning, wmove = getWinningMove(&game.Board, cGetOtherPlayer(game.PlrTurn), &moves)
+	winning, wmove = getWinningMove(&bitBoard, cGetOtherPlayer(game.PlrTurn), &moves)
 	if winning {
+		fmt.Println("Forced Block")
 		return wmove
 	}
 
 	//col = moves[rand.Intn(len(moves))]
-	col = MonteCarloAI(&game.Board, game.PlrTurn, 50000)
+	col = MonteCarloAI(&bitBoard, game.PlrTurn, ITERATIONS)
 
 	return col
 }
 
-func getWinningMove(board *CBoard, player CPlr, moves *[]int) (bool, int) {
+func getWinningMove(board *BitBoard, player CPlr, moves *[]int) (bool, int) {
 	winning := getFirstFilteredMove(board, player, moves, isWinningMove)
 	if winning > 0 {
 		return true, winning
@@ -60,31 +68,34 @@ func getAvailableMoves(board *CBoard) []int {
 	return a
 }
 
-func isWinningMove(board CBoard, move int, player CPlr) bool {
+func isWinningMove(board BitBoard, move int, player CPlr) bool {
 	// b := game.place(move+1, player)
-	row := playPiece(&board, move, player)
+	row := board.PlayMove(move, player)
 
 	// dumpBoard(&board)
 
-	return checkForWin(&board, player, row, move)
+	return board.CheckIfWinAtSpot(player, row, move)
 }
 
 func getWinScore(winplayer CPlr, maxplayer CPlr) int {
 	if maxplayer == winplayer {
+		// fmt.Printf("%d won so returning: 1\n", winplayer)
 		return 1
 	}
+	// fmt.Printf("%d won so returning: -1\n", winplayer)
+
 	return -1
 }
 
-func runRandomGame(board CBoard, maxplayer CPlr, nextmove int) int {
-	row := playPiece(&board, nextmove, maxplayer)
-	gameover := checkForWin(&board, maxplayer, row, nextmove)
+func runRandomGame(board BitBoard, maxplayer CPlr, nextmove int) int {
+	row := board.PlayMove(nextmove, maxplayer)
+	gameover := board.CheckIfWinAtSpot(maxplayer, row, nextmove)
 
 	nextplayer := cGetOtherPlayer(maxplayer)
 
 	for !gameover {
-
-		moves := getAvailableMoves(&board)
+		// fmt.Println("Begining Random Section")
+		moves := board.GetAvailableMoves()
 		if len(moves) == 0 {
 			return 0
 		}
@@ -99,8 +110,9 @@ func runRandomGame(board CBoard, maxplayer CPlr, nextmove int) int {
 			move = moves[rand.Intn(len(moves))]
 		}
 		// move := moves[rand.Intn(len(moves))]
-		row := playPiece(&board, move, nextplayer)
-		if checkForWin(&board, nextplayer, row, move) {
+		board.PlayMove(move, nextplayer)
+		// if board.CheckIfWinAtSpot(nextplayer, row, move) {
+		if board.CheckIfWinFullBoard(nextplayer) {
 			return getWinScore(nextplayer, maxplayer)
 		}
 
@@ -168,7 +180,7 @@ func checkConnect(n int, board *CBoard, lookingFor CPlr, row int, col int, incer
 	return false
 }
 
-func checkForWin(board *CBoard, player CPlr, row int, col int) (won bool) {
+func checkForWinSlow(board *CBoard, player CPlr, row int, col int) (won bool) {
 	// row checks
 	// fmt.Printf("Move was %d %d \n", row, col)
 	// fmt.Println("Check Row")
@@ -217,7 +229,7 @@ func getMovesWithCondition(board *CBoard, player CPlr, filter func(*CBoard, int,
 	return a
 }
 
-func getFirstFilteredMove(board *CBoard, player CPlr, moves *[]int, filter func(CBoard, int, CPlr) bool) int {
+func getFirstFilteredMove(board *BitBoard, player CPlr, moves *[]int, filter func(BitBoard, int, CPlr) bool) int {
 
 	for i := range *moves {
 		if filter(*board, i, player) {
@@ -240,12 +252,13 @@ func filterMoves(board *CBoard, player CPlr, moves *[]int, filter func(CBoard, i
 	return a
 }
 
-func MonteCarloAI(board *CBoard, aiplayer CPlr, iterations int) int {
+func MonteCarloAI(board *BitBoard, aiplayer CPlr, iterations int) int {
 	// perform Monte Carlo simulation for the given number of iterations
 	// and return the best move to play
 
-	moves := getAvailableMoves(board)
+	moves := board.GetAvailableMoves()
 	numMoves := len(moves)
+	// fmt.Println(moves)
 
 	if numMoves == 0 {
 		return 7
@@ -260,6 +273,8 @@ func MonteCarloAI(board *CBoard, aiplayer CPlr, iterations int) int {
 			defer wg.Done()
 
 			for j := 0; j < iterations; j++ {
+				// fmt.Printf("Running Monte Carlo Iteration %d\n", j)
+
 				scores[index] += runRandomGame(*board, aiplayer, m)
 				// evaluate the final game state and update the score for this move
 			}
